@@ -1,11 +1,42 @@
 model,manufacturer,type,power_kw,price_usd
-IQ8+,Enphase,microinverter,0.29,150
-IQ8M,Enphase,microinverter,0.325,170
-IQ8HC,Enphase,microinverter,0.38,195
+IQ8-60-2-US,Enphase,microinverter,0.24,124
+IQ8PLUS-72-2-US,Enphase,microinverter,0.29,150
+IQ8M-72-2-US,Enphase,microinverter,0.325,170
+IQ8A-72-2-US,Enphase,microinverter,0.349,180
+IQ8H-240-72-2-US,Enphase,microinverter,0.38,195
+IQ8H-208-72-2-US,Enphase,microinverter,0.36,186
+SE3000H-US,SolarEdge,string,3.0,1260
 SE3800H-US,SolarEdge,string,3.8,1484
+SE5000H-US,SolarEdge,string,5.0,1750
+SE6000H-US,SolarEdge,string,6.0,1900
 SE7600H-US,SolarEdge,string,7.6,2000
+SE10000H-US,SolarEdge,string,10.0,2490
 SE11400H-US,SolarEdge,string,11.4,2750
-Primo GEN24 5.0-1,Fronius,string,5.0,2000
-Sunny Boy SB7.7-1SP-US-42,SMA,string,7.7,2100
-MIN 6000TL-X,Growatt,string,6.0,1000
-GW5000A-MS,GoodWe,string,5.0,800
+Primo GEN24 3.8 208-240,Fronius,string,3.8,1600
+Primo GEN24 5.0 208-240,Fronius,string,5.0,2000
+Primo GEN24 6.0 208-240,Fronius,string,6.0,2280
+Primo GEN24 7.7 208-240,Fronius,string,7.7,2695
+Primo GEN24 10.0 208-240,Fronius,string,10.0,3200
+SB3.0-1SP-US-40,SMA,string,3.0,1260
+SB3.8-1SP-US-40,SMA,string,3.8,1520
+SB5.0-1SP-US-40,SMA,string,5.0,1750
+SB6.0-1SP-US-40,SMA,string,6.0,1920
+SB7.0-1SP-US-40,SMA,string,7.0,2030
+SB7.7-1SP-US-40,SMA,string,7.7,2100
+MIN2500TL-X,Growatt,string,2.5,550
+MIN3000TL-X,Growatt,string,3.0,630
+MIN3600TL-X,Growatt,string,3.6,700
+MIN4200TL-X,Growatt,string,4.2,780
+MIN4600TL-X,Growatt,string,4.6,820
+MIN5000TL-X,Growatt,string,5.0,860
+MIN6000TL-X,Growatt,string,6.0,1000
+GW3000D-NS,GoodWe,string,3.0,510
+GW3600D-NS,GoodWe,string,3.68,590
+GW4200D-NS,GoodWe,string,4.2,630
+GW5000D-NS,GoodWe,string,5.0,725
+GW6000D-NS,GoodWe,string,6.0,840
+GW5000-MS,GoodWe,string,5.0,800
+GW6000-MS,GoodWe,string,6.0,930
+GW7000-MS,GoodWe,string,7.0,1050
+GW8500-MS,GoodWe,string,8.5,1233
+GW10K-MS,GoodWe,string,10.0,1400
