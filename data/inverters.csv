@@ -1,0 +1,11 @@
+model,manufacturer,type,power_kw,price_usd
+IQ8+,Enphase,microinverter,0.29,150
+IQ8M,Enphase,microinverter,0.325,170
+IQ8HC,Enphase,microinverter,0.38,195
+SE3800H-US,SolarEdge,string,3.8,1484
+SE7600H-US,SolarEdge,string,7.6,2000
+SE11400H-US,SolarEdge,string,11.4,2750
+Primo GEN24 5.0-1,Fronius,string,5.0,2000
+Sunny Boy SB7.7-1SP-US-42,SMA,string,7.7,2100
+MIN 6000TL-X,Growatt,string,6.0,1000
+GW5000A-MS,GoodWe,string,5.0,800
