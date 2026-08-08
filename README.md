@@ -1,14 +1,14 @@
 # Solar System Designer
 
-A tool that sizes a residential on-grid photovoltaic (PV) system -- recommended system size (kWp), number of panels, matching inverter, and estimated monthly generation -- from location, monthly energy consumption, available roof area, and shading level.
+A tool that sizes a residential on-grid photovoltaic (PV) system -- recommended system size (kWp), the lowest-cost module and inverter combination that fits the available roof area, and estimated monthly generation -- from location, monthly energy consumption, available roof area, and shading level.
 
 ## Scope (V1)
 
-This project sizes a residential on-grid PV system (kWp, number of modules, inverter, and estimated generation) from city, monthly consumption, available area, and shading level, using peak sun hours (HSP) and a performance ratio (PR) loss factor.
+This project sizes a residential on-grid PV system (kWp, module and inverter selection, total equipment cost, and estimated generation) from city, monthly consumption, available area, and shading level, using peak sun hours (HSP) and a performance ratio (PR) loss factor.
 
 ## Why this project
 
-I'm an electrical engineer with 7+ years in power distribution and generation, currently building a stronger software/data skill set. This project applies core PV engineering fundamentals (solar irradiance, tilt angle, performance ratio, inverter sizing) inside a small, testable Python tool -- the kind of quantitative, automatable thinking the energy sector increasingly relies on.
+I'm an electrical engineer with 7+ years in power distribution and generation, currently building a stronger software/data skill set. This project applies core PV engineering fundamentals (solar irradiance, tilt angle, performance ratio, inverter sizing, cost/benefit equipment selection) inside a small, testable Python tool -- the kind of quantitative, automatable thinking the energy sector increasingly relies on.
 
 ## Inputs (V1)
 
@@ -27,9 +27,9 @@ I'm an electrical engineer with 7+ years in power distribution and generation, c
 ## Outputs (V1)
 
 - Recommended system size (kWp)
-- Number of modules and selected module model (from a 12-model catalog)
-- Occupied roof area (m2)
-- Selected inverter model and its DC/AC ratio (from a 10-model catalog)
+- Selected module model, number of modules, and occupied roof area (m2)
+- Selected inverter model and its DC/AC ratio
+- Modules cost, inverter cost, and total equipment cost (USD)
 - Estimated generation (kWh/month)
 
 ## Method
@@ -46,21 +46,15 @@ Required system size:
 kWp = E_day / (HSP x PR x orientation_factor x shading_factor)
 ```
 
-Module selection: the catalog module with the highest kWp per m2 is chosen, to make the best use of limited roof area.
-
-Number of modules:
+Module and layout selection: every module in the catalog is evaluated against the required kWp and the available roof area (number of modules needed, occupied area, total module cost). Among the combinations that fit the roof, the cheapest one is selected -- the best cost/benefit option for the client, not just the most area-efficient one. If nothing fits, the tool falls back to the most area-efficient module.
 
 ```
 n = ceil((kWp x 1000) / module_power_w)
+area = n x module_area_m2       # must be <= available area to "fit"
+cost = n x module_price_usd
 ```
 
-Occupied area:
-
-```
-A = n x module_area_m2   # validated against available area
-```
-
-Inverter selection: the smallest string inverter whose rated AC power, multiplied by a standard DC/AC oversizing allowance (1.3x), still covers the array's kWp. Microinverters are cataloged separately and not yet auto-selected in V1 (see roadmap).
+Inverter selection: among all string inverters whose rated AC power, multiplied by a standard DC/AC oversizing allowance (1.3x), still covers the array's kWp, the cheapest one is selected. Microinverters are cataloged separately and not yet auto-selected in V1 (see roadmap).
 
 Default loss factors:
 
@@ -75,9 +69,11 @@ Default loss factors:
 
 ## Data
 
-- `data/modules.csv` -- 12 residential PV modules (350W-500W) from Qcells, Panasonic, REC Group, Canadian Solar, JinkoSolar, Trina Solar, SunPower/Maxeon, and LONGi Solar, based on manufacturer datasheets.
-- `data/inverters.csv` -- 10 residential inverters (string and microinverter) from Enphase, SolarEdge, Fronius, SMA, Growatt, and GoodWe.
+- `data/modules.csv` -- 42 residential PV modules spanning full datasheet power ranges (not just one model per brand) from Qcells, Panasonic, REC Group, Canadian Solar, JinkoSolar, Trina Solar, SunPower/Maxeon, and LONGi Solar.
+- `data/inverters.csv` -- 41 residential inverters spanning full product lines (string and microinverter) from Enphase (IQ8 series), SolarEdge (Home Wave), Fronius (Primo GEN24), SMA (Sunny Boy), Growatt (MIN TL-X), and GoodWe (DNS/MS series).
 - `data/hsp.csv` -- latitude and average peak sun hours for 5 Brazilian cities.
+
+Module and inverter power ratings and model names come from manufacturer datasheets. Dimensions/areas and prices for the additional power variants within each product line are estimated from the confirmed reference model in that line (a manufacturer's datasheet usually shows one physical panel size sold in several power bins) and should be treated as reasonable engineering estimates rather than exact retail quotes. The LONGi Hi-MO 6 line's exact power steps could not be confirmed from an accessible datasheet and should be re-verified before using this catalog for a real quote.
 
 ## Example
 
@@ -98,13 +94,16 @@ city: Rio de Janeiro
 latitude: -22.9
 recommended_tilt_deg: 22.9
 recommended_kwp: 3.14
-module: Hi-MO X10 Explorer
-n_modules: 7
-occupied_area_m2: 14.28
+module: Hi-MO 6 Explorer LR5-54HTH-415
+n_modules: 8
+occupied_area_m2: 16.0
 fits_available_area: True
-inverter: SE3800H-US
-inverter_power_kw: 3.8
-dc_ac_ratio: 0.83
+inverter: GW3000D-NS
+inverter_power_kw: 3.0
+dc_ac_ratio: 1.05
+modules_cost_usd: 992
+inverter_cost_usd: 510.0
+total_system_cost_usd: 1502
 estimated_generation_kwh_month: 361.4
 ```
 
@@ -115,7 +114,8 @@ estimated_generation_kwh_month: 361.4
 - Temperature-corrected power output
 - Single-line diagram generation
 - Support for more cities and a real geocoding lookup
+- Replace estimated prices/areas for catalog line variants with confirmed per-SKU datasheet values
 
 ## Status
 
-Work in progress -- V1 core sizing logic implemented and validated, including module and inverter selection.
+Work in progress -- V1 core sizing logic implemented and validated, including cost-driven module and inverter selection across full product lines.
