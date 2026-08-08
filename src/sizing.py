@@ -112,21 +112,50 @@ def required_kwp(
 
 
 def choose_module(modules: list[Module]) -> Module:
-    """Pick the module with the highest kWp per m^2 (best use of limited roof area)."""
+    """Pick the module with the highest kWp per m^2 (best use of limited roof area).
+    Used only as a fallback when no module/layout combination fits the
+    available area -- see choose_module_layout for the primary, cost-driven
+    selection."""
     return max(modules, key=lambda m: m.kwp_per_m2)
+
+
+def choose_module_layout(
+    kwp: float, modules: list[Module], available_area_m2: float
+) -> tuple[Module, int, float, float, bool]:
+    """Evaluate every module in the catalog against the required kWp and the
+    available roof area, and pick the cheapest total-module-cost option among
+    the ones that actually fit -- the best cost/benefit choice for the
+    client, not just the most area-efficient one. Falls back to the most
+    area-efficient module (smallest occupied area) if nothing fits.
+
+    Returns (module, n_modules, occupied_area_m2, modules_cost_usd, fits)."""
+    options = []
+    for m in modules:
+        n = math.ceil((kwp * 1000) / m.power_w)
+        area = n * m.area_m2
+        cost = n * m.price_usd
+        fits = area <= available_area_m2
+        options.append((m, n, area, cost, fits))
+
+    fitting = [o for o in options if o[4]]
+    if fitting:
+        return min(fitting, key=lambda o: o[3])
+    return min(options, key=lambda o: o[2])
 
 
 def choose_inverter(
     kwp: float, inverters: list[Inverter], max_dc_ac_ratio: float = MAX_DC_AC_RATIO
 ) -> Inverter:
-    """Pick the smallest string inverter that can handle the array's DC power,
-    allowing a standard DC/AC oversizing ratio. Falls back to the largest
-    available string inverter if none is big enough (undersized case, V2 would
-    split into multiple inverters/MPPTs)."""
+    """Pick the cheapest string inverter that can handle the array's DC power,
+    allowing a standard DC/AC oversizing ratio -- i.e. the best cost/benefit
+    option among all inverters that are adequately sized, not just the
+    smallest one. Falls back to the largest available string inverter if none
+    is big enough (undersized case, V2 would split into multiple
+    inverters/MPPTs)."""
     string_inverters = [i for i in inverters if i.type == "string"]
     candidates = [i for i in string_inverters if i.power_kw * max_dc_ac_ratio >= kwp]
     if candidates:
-        return min(candidates, key=lambda i: i.power_kw)
+        return min(candidates, key=lambda i: (i.price_usd, i.power_kw))
     return max(string_inverters, key=lambda i: i.power_kw)
 
 
@@ -156,13 +185,13 @@ def size_system(
         shading=shading,
     )
 
-    module = choose_module(modules)
-    n_modules = math.ceil((kwp * 1000) / module.power_w)
-    occupied_area = n_modules * module.area_m2
-    fits = occupied_area <= available_area_m2
+    module, n_modules, occupied_area, modules_cost, fits = choose_module_layout(
+        kwp, modules, available_area_m2
+    )
 
     inverter = choose_inverter(kwp, inverters)
     dc_ac_ratio = round(kwp / inverter.power_kw, 2)
+    total_system_cost_usd = round(modules_cost + inverter.price_usd)
 
     estimated_generation_kwh_month = kwp * city_data["hsp_avg"] * DEFAULT_PR * 30
 
@@ -178,6 +207,9 @@ def size_system(
         "inverter": inverter.model,
         "inverter_power_kw": inverter.power_kw,
         "dc_ac_ratio": dc_ac_ratio,
+        "modules_cost_usd": round(modules_cost),
+        "inverter_cost_usd": inverter.price_usd,
+        "total_system_cost_usd": total_system_cost_usd,
         "estimated_generation_kwh_month": round(estimated_generation_kwh_month, 1),
     }
 
