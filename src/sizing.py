@@ -1,9 +1,9 @@
 """
 Solar System Designer - V1 core sizing logic.
 
-Sizes a residential on-grid PV system (kWp, number of modules, estimated
-generation) from city, monthly consumption, available roof area, and
-shading level, using peak sun hours (HSP) and a performance ratio (PR)
+Sizes a residential on-grid PV system (kWp, number of modules, inverter,
+estimated generation) from city, monthly consumption, available roof area,
+and shading level, using peak sun hours (HSP) and a performance ratio (PR)
 loss factor.
 """
 import csv
@@ -18,6 +18,7 @@ SHADING_FACTORS = {
 }
 
 DEFAULT_PR = 0.80
+MAX_DC_AC_RATIO = 1.3  # standard oversizing allowance for string inverters
 
 
 @dataclass
@@ -31,6 +32,15 @@ class Module:
     @property
     def kwp_per_m2(self) -> float:
         return (self.power_w / 1000) / self.area_m2
+
+
+@dataclass
+class Inverter:
+    model: str
+    manufacturer: str
+    type: str  # "string" or "microinverter"
+    power_kw: float
+    price_usd: float
 
 
 def load_modules(path: str) -> list[Module]:
@@ -47,6 +57,22 @@ def load_modules(path: str) -> list[Module]:
                 )
             )
     return modules
+
+
+def load_inverters(path: str) -> list[Inverter]:
+    inverters = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            inverters.append(
+                Inverter(
+                    model=row["model"],
+                    manufacturer=row["manufacturer"],
+                    type=row["type"],
+                    power_kw=float(row["power_kw"]),
+                    price_usd=float(row["price_usd"]),
+                )
+            )
+    return inverters
 
 
 def load_hsp(path: str) -> dict:
@@ -90,6 +116,20 @@ def choose_module(modules: list[Module]) -> Module:
     return max(modules, key=lambda m: m.kwp_per_m2)
 
 
+def choose_inverter(
+    kwp: float, inverters: list[Inverter], max_dc_ac_ratio: float = MAX_DC_AC_RATIO
+) -> Inverter:
+    """Pick the smallest string inverter that can handle the array's DC power,
+    allowing a standard DC/AC oversizing ratio. Falls back to the largest
+    available string inverter if none is big enough (undersized case, V2 would
+    split into multiple inverters/MPPTs)."""
+    string_inverters = [i for i in inverters if i.type == "string"]
+    candidates = [i for i in string_inverters if i.power_kw * max_dc_ac_ratio >= kwp]
+    if candidates:
+        return min(candidates, key=lambda i: i.power_kw)
+    return max(string_inverters, key=lambda i: i.power_kw)
+
+
 def size_system(
     city: str,
     monthly_consumption_kwh: float,
@@ -97,9 +137,11 @@ def size_system(
     shading: str,
     target_compensation: float,
     modules_path: str = "data/modules.csv",
+    inverters_path: str = "data/inverters.csv",
     hsp_path: str = "data/hsp.csv",
 ) -> dict:
     modules = load_modules(modules_path)
+    inverters = load_inverters(inverters_path)
     cities = load_hsp(hsp_path)
 
     city_data = cities.get(city.strip().lower())
@@ -119,6 +161,9 @@ def size_system(
     occupied_area = n_modules * module.area_m2
     fits = occupied_area <= available_area_m2
 
+    inverter = choose_inverter(kwp, inverters)
+    dc_ac_ratio = round(kwp / inverter.power_kw, 2)
+
     estimated_generation_kwh_month = kwp * city_data["hsp_avg"] * DEFAULT_PR * 30
 
     return {
@@ -130,6 +175,9 @@ def size_system(
         "n_modules": n_modules,
         "occupied_area_m2": round(occupied_area, 2),
         "fits_available_area": fits,
+        "inverter": inverter.model,
+        "inverter_power_kw": inverter.power_kw,
+        "dc_ac_ratio": dc_ac_ratio,
         "estimated_generation_kwh_month": round(estimated_generation_kwh_month, 1),
     }
 
